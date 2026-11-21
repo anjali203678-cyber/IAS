@@ -12,11 +12,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
 
       - name: Set up Android SDK & Accept Licenses
         uses: android-actions/setup-android@v3
@@ -24,7 +24,7 @@ jobs:
       - name: Install Android 36 SDK Platform
         run: |
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" || true
+          sdkmanager "platform-tools" "build-tools;36.0.0" "platforms;android-36" || true
           sdkmanager "platforms;android-36.1" || true
 
       - name: Restore debug signing keystore
@@ -34,6 +34,7 @@ jobs:
           elif [ ! -f debug.keystore ]; then
             keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           fi
+          ls -la debug.keystore app/google-services.json || true
 
       - name: Set up Gradle 9.3.1
         uses: gradle/actions/setup-gradle@v4
@@ -41,7 +42,7 @@ jobs:
           gradle-version: "9.3.1"
 
       - name: Build Debug APK
-        run: gradle :app:assembleDebug --no-daemon --max-workers=2 --stacktrace
+        run: gradle :app:assembleDebug --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8" --stacktrace
 
       - name: Upload CIVILS IAS APK
         uses: actions/upload-artifact@v4
