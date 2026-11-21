@@ -1,0 +1,303 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Personalized UPSC CSE 2029 student profile, theme preference, favourite BTS member, and study streak metrics.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "targetAttemptYear": { "type": "integer" },
+        "syllabusTargetDate": { "type": "string" },
+        "optionalSubject": { "type": "string" },
+        "primaryLanguage": { "type": "string" },
+        "dailyStudyTargetMinutes": { "type": "integer" },
+        "englishTargetMinutes": { "type": "integer" },
+        "themeMode": { "type": "string", "enum": ["LIGHT_LAVENDER", "DARK_GALAXY"] },
+        "favouriteMember": { "type": "string" },
+        "streakDays": { "type": "integer" },
+        "totalStars": { "type": "integer" },
+        "lastStudyDate": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "targetAttemptYear",
+        "syllabusTargetDate",
+        "optionalSubject",
+        "primaryLanguage",
+        "dailyStudyTargetMinutes",
+        "englishTargetMinutes",
+        "themeMode",
+        "favouriteMember",
+        "streakDays",
+        "totalStars",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ChapterProgress": {
+      "title": "ChapterProgress",
+      "description": "Per-chapter NCERT/UPSC completion, offline download state, spaced-repetition stage (1d/3d/7d/15d/30d), and weak concepts.",
+      "type": "object",
+      "properties": {
+        "chapterId": { "type": "string" },
+        "bookId": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "downloadedOffline": { "type": "boolean" },
+        "notesRead": { "type": "boolean" },
+        "memoryDone": { "type": "boolean" },
+        "quizDone": { "type": "boolean" },
+        "bestScorePercent": { "type": "integer" },
+        "revisionStage": { "type": "integer" },
+        "lastRevisedEpochMs": { "type": "integer" },
+        "nextRevisionEpochMs": { "type": "integer" },
+        "weakConcepts": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "chapterId",
+        "bookId",
+        "completed",
+        "downloadedOffline",
+        "notesRead",
+        "memoryDone",
+        "quizDone",
+        "bestScorePercent",
+        "revisionStage",
+        "lastRevisedEpochMs",
+        "nextRevisionEpochMs",
+        "weakConcepts",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "StudyTask": {
+      "title": "StudyTask",
+      "description": "Scheduled 9-hour daily study block with actual duration tracking and status.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "titleHi": { "type": "string" },
+        "category": { "type": "string" },
+        "durationMinutes": { "type": "integer" },
+        "actualMinutes": { "type": "integer" },
+        "scheduledTime": { "type": "string" },
+        "status": { "type": "string", "enum": ["PENDING", "IN_PROGRESS", "PAUSED", "COMPLETED"] },
+        "taskDate": { "type": "string" },
+        "custom": { "type": "boolean" },
+        "orderIndex": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "title",
+        "titleHi",
+        "category",
+        "durationMinutes",
+        "actualMinutes",
+        "scheduledTime",
+        "status",
+        "taskDate",
+        "custom",
+        "orderIndex",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "FlashcardItem": {
+      "title": "FlashcardItem",
+      "description": "BTS-themed spaced-repetition flashcard with mastery status and source reference.",
+      "type": "object",
+      "properties": {
+        "deckMember": { "type": "string" },
+        "subject": { "type": "string" },
+        "chapterId": { "type": "string" },
+        "front": { "type": "string" },
+        "back": { "type": "string" },
+        "explanation": { "type": "string" },
+        "difficulty": { "type": "string", "enum": ["EASY", "MEDIUM", "HARD"] },
+        "sourceRef": { "type": "string" },
+        "masteryStatus": { "type": "string", "enum": ["NEW", "KNOWN", "REVISION", "DIFFICULT"] },
+        "favourite": { "type": "boolean" },
+        "reviewCount": { "type": "integer" },
+        "intervalDays": { "type": "integer" },
+        "nextReviewEpochMs": { "type": "integer" },
+        "custom": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "deckMember",
+        "subject",
+        "chapterId",
+        "front",
+        "back",
+        "explanation",
+        "difficulty",
+        "sourceRef",
+        "masteryStatus",
+        "favourite",
+        "reviewCount",
+        "intervalDays",
+        "nextReviewEpochMs",
+        "custom",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "QuoteHistoryEntry": {
+      "title": "QuoteHistoryEntry",
+      "description": "Non-repeating motivational message history entry with attribution label and favourite state.",
+      "type": "object",
+      "properties": {
+        "quoteId": { "type": "string" },
+        "member": { "type": "string" },
+        "text": { "type": "string" },
+        "labelType": { "type": "string", "enum": ["VERIFIED_BTS_QUOTE", "INSPIRED_BY_MEMBER"] },
+        "sourceNote": { "type": "string" },
+        "contextTag": { "type": "string" },
+        "displayedDate": { "type": "string" },
+        "slot": { "type": "string", "enum": ["MORNING", "EVENING", "SESSION", "BREAK", "SHUFFLE", "CELEBRATION"] },
+        "favourite": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "quoteId",
+        "member",
+        "text",
+        "labelType",
+        "sourceNote",
+        "contextTag",
+        "displayedDate",
+        "slot",
+        "favourite",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "TestAttempt": {
+      "title": "TestAttempt",
+      "description": "Recorded Prelims, PYQ, Chapter Quiz, or Mock Test result with accuracy and weak topics.",
+      "type": "object",
+      "properties": {
+        "testTitle": { "type": "string" },
+        "testType": { "type": "string" },
+        "chapterId": { "type": "string" },
+        "totalQuestions": { "type": "integer" },
+        "correctCount": { "type": "integer" },
+        "wrongCount": { "type": "integer" },
+        "skippedCount": { "type": "integer" },
+        "netScore": { "type": "number" },
+        "maxScore": { "type": "number" },
+        "accuracyPercent": { "type": "integer" },
+        "timeTakenSeconds": { "type": "integer" },
+        "weakTopics": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "testTitle",
+        "testType",
+        "chapterId",
+        "totalQuestions",
+        "correctCount",
+        "wrongCount",
+        "skippedCount",
+        "netScore",
+        "maxScore",
+        "accuracyPercent",
+        "timeTakenSeconds",
+        "weakTopics",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "EnglishPracticeLog": {
+      "title": "EnglishPracticeLog",
+      "description": "Daily 45-minute English speaking and vocabulary progress log.",
+      "type": "object",
+      "properties": {
+        "dateStr": { "type": "string" },
+        "minutesPracticed": { "type": "integer" },
+        "vocabLearnedCount": { "type": "integer" },
+        "mistakesReviewed": { "type": "integer" },
+        "confidenceScore": { "type": "integer" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "dateStr",
+        "minutesPracticed",
+        "vocabLearnedCount",
+        "mistakesReviewed",
+        "confidenceScore",
+        "notes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ReminderConfig": {
+      "title": "ReminderConfig",
+      "description": "Per-category Android study notification reminder configuration.",
+      "type": "object",
+      "properties": {
+        "category": { "type": "string" },
+        "title": { "type": "string" },
+        "hour": { "type": "integer" },
+        "minute": { "type": "integer" },
+        "enabled": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "category",
+        "title",
+        "hour",
+        "minute",
+        "enabled",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User UPSC student profile and streaks."
+    },
+    "/users/{userId}/chapter_progress/{chapterId}": {
+      "schema": { "$ref": "#/entities/ChapterProgress" },
+      "description": "Per-chapter progress, offline download, and spaced repetition schedule."
+    },
+    "/users/{userId}/study_tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/StudyTask" },
+      "description": "Daily 9-hour study timetable blocks and custom tasks."
+    },
+    "/users/{userId}/flashcards/{cardId}": {
+      "schema": { "$ref": "#/entities/FlashcardItem" },
+      "description": "BTS-themed flashcards and spaced-repetition mastery state."
+    },
+    "/users/{userId}/quote_history/{entryId}": {
+      "schema": { "$ref": "#/entities/QuoteHistoryEntry" },
+      "description": "Non-repeating motivational message history and favourites."
+    },
+    "/users/{userId}/test_attempts/{attemptId}": {
+      "schema": { "$ref": "#/entities/TestAttempt" },
+      "description": "Test attempt scores, accuracy, and weak topics."
+    },
+    "/users/{userId}/english_logs/{logId}": {
+      "schema": { "$ref": "#/entities/EnglishPracticeLog" },
+      "description": "Daily 45-minute English speaking practice logs."
+    },
+    "/users/{userId}/reminder_configs/{categoryId}": {
+      "schema": { "$ref": "#/entities/ReminderConfig" },
+      "description": "Notification reminder schedule per category."
+    }
+  }
+}

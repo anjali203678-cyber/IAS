@@ -1,0 +1,6 @@
+{
+  "name": "CIVILS IAS",
+  "description": "Personalized UPSC Civil Services 2029 coaching academy in Hindi & English with BTS Purple Dream theme, Gemini AI personal teacher, NCERT syllabus library, spaced-repetition flashcards, 9-hour daily planner, reminders, and test series.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

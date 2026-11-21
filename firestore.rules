@@ -1,0 +1,414 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTimestampsCreate(data) {
+      return data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidTimestampsUpdate(data) {
+      return data.createdAt == existing().createdAt &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidStringList(val, maxItems, maxItemLen) {
+      return val is list &&
+             val.size() <= maxItems &&
+             (val.size() == 0 || (val[0] is string && val[0].size() <= maxItemLen));
+    }
+
+    // --- Validation Helpers ---
+
+    function isValidUserProfile(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+             data.targetAttemptYear is int && data.targetAttemptYear >= 2026 && data.targetAttemptYear <= 2035 &&
+             data.syllabusTargetDate is string && data.syllabusTargetDate.size() >= 1 && data.syllabusTargetDate.size() <= 40 &&
+             data.optionalSubject is string && data.optionalSubject.size() >= 1 && data.optionalSubject.size() <= 60 &&
+             data.primaryLanguage is string && data.primaryLanguage.size() >= 1 && data.primaryLanguage.size() <= 30 &&
+             data.dailyStudyTargetMinutes is int && data.dailyStudyTargetMinutes >= 60 && data.dailyStudyTargetMinutes <= 960 &&
+             data.englishTargetMinutes is int && data.englishTargetMinutes >= 10 && data.englishTargetMinutes <= 240 &&
+             data.themeMode in ['LIGHT_LAVENDER', 'DARK_GALAXY'] &&
+             data.favouriteMember is string && data.favouriteMember.size() >= 1 && data.favouriteMember.size() <= 30 &&
+             data.streakDays is int && data.streakDays >= 0 && data.streakDays <= 5000 &&
+             data.totalStars is int && data.totalStars >= 0 && data.totalStars <= 100000 &&
+             (!('lastStudyDate' in data) || (data.lastStudyDate is string && data.lastStudyDate.size() <= 20));
+    }
+
+    function isValidChapterProgress(data) {
+      return data.chapterId is string && data.chapterId.size() >= 1 && data.chapterId.size() <= 64 &&
+             data.bookId is string && data.bookId.size() >= 1 && data.bookId.size() <= 64 &&
+             data.completed is bool &&
+             data.downloadedOffline is bool &&
+             data.notesRead is bool &&
+             data.memoryDone is bool &&
+             data.quizDone is bool &&
+             data.bestScorePercent is int && data.bestScorePercent >= 0 && data.bestScorePercent <= 100 &&
+             data.revisionStage is int && data.revisionStage >= 0 && data.revisionStage <= 5 &&
+             data.lastRevisedEpochMs is int && data.lastRevisedEpochMs >= 0 &&
+             data.nextRevisionEpochMs is int && data.nextRevisionEpochMs >= 0 &&
+             isValidStringList(data.weakConcepts, 20, 120);
+    }
+
+    function isValidStudyTask(data) {
+      return data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             data.titleHi is string && data.titleHi.size() <= 160 &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 40 &&
+             data.durationMinutes is int && data.durationMinutes >= 5 && data.durationMinutes <= 480 &&
+             data.actualMinutes is int && data.actualMinutes >= 0 && data.actualMinutes <= 600 &&
+             data.scheduledTime is string && data.scheduledTime.size() >= 1 && data.scheduledTime.size() <= 20 &&
+             data.status in ['PENDING', 'IN_PROGRESS', 'PAUSED', 'COMPLETED'] &&
+             data.taskDate is string && data.taskDate.size() >= 1 && data.taskDate.size() <= 20 &&
+             data.custom is bool &&
+             data.orderIndex is int && data.orderIndex >= 0 && data.orderIndex <= 100;
+    }
+
+    function isValidFlashcardItem(data) {
+      return data.deckMember is string && data.deckMember.size() >= 1 && data.deckMember.size() <= 30 &&
+             data.subject is string && data.subject.size() >= 1 && data.subject.size() <= 60 &&
+             data.chapterId is string && data.chapterId.size() >= 1 && data.chapterId.size() <= 64 &&
+             data.front is string && data.front.size() >= 1 && data.front.size() <= 500 &&
+             data.back is string && data.back.size() >= 1 && data.back.size() <= 800 &&
+             data.explanation is string && data.explanation.size() <= 1200 &&
+             data.difficulty in ['EASY', 'MEDIUM', 'HARD'] &&
+             data.sourceRef is string && data.sourceRef.size() <= 200 &&
+             data.masteryStatus in ['NEW', 'KNOWN', 'REVISION', 'DIFFICULT'] &&
+             data.favourite is bool &&
+             data.reviewCount is int && data.reviewCount >= 0 && data.reviewCount <= 10000 &&
+             data.intervalDays is int && data.intervalDays >= 0 && data.intervalDays <= 365 &&
+             data.nextReviewEpochMs is int && data.nextReviewEpochMs >= 0 &&
+             data.custom is bool;
+    }
+
+    function isValidQuoteHistoryEntry(data) {
+      return data.quoteId is string && data.quoteId.size() >= 1 && data.quoteId.size() <= 64 &&
+             data.member is string && data.member.size() >= 1 && data.member.size() <= 30 &&
+             data.text is string && data.text.size() >= 1 && data.text.size() <= 600 &&
+             data.labelType in ['VERIFIED_BTS_QUOTE', 'INSPIRED_BY_MEMBER'] &&
+             data.sourceNote is string && data.sourceNote.size() <= 200 &&
+             data.contextTag is string && data.contextTag.size() >= 1 && data.contextTag.size() <= 40 &&
+             data.displayedDate is string && data.displayedDate.size() >= 1 && data.displayedDate.size() <= 20 &&
+             data.slot in ['MORNING', 'EVENING', 'SESSION', 'BREAK', 'SHUFFLE', 'CELEBRATION'] &&
+             data.favourite is bool;
+    }
+
+    function isValidTestAttempt(data) {
+      return data.testTitle is string && data.testTitle.size() >= 1 && data.testTitle.size() <= 120 &&
+             data.testType is string && data.testType.size() >= 1 && data.testType.size() <= 40 &&
+             data.chapterId is string && data.chapterId.size() <= 64 &&
+             data.totalQuestions is int && data.totalQuestions >= 1 && data.totalQuestions <= 300 &&
+             data.correctCount is int && data.correctCount >= 0 && data.correctCount <= 300 &&
+             data.wrongCount is int && data.wrongCount >= 0 && data.wrongCount <= 300 &&
+             data.skippedCount is int && data.skippedCount >= 0 && data.skippedCount <= 300 &&
+             data.netScore is number &&
+             data.maxScore is number &&
+             data.accuracyPercent is int && data.accuracyPercent >= 0 && data.accuracyPercent <= 100 &&
+             data.timeTakenSeconds is int && data.timeTakenSeconds >= 0 && data.timeTakenSeconds <= 86400 &&
+             isValidStringList(data.weakTopics, 20, 120);
+    }
+
+    function isValidEnglishLog(data) {
+      return data.dateStr is string && data.dateStr.size() >= 1 && data.dateStr.size() <= 20 &&
+             data.minutesPracticed is int && data.minutesPracticed >= 0 && data.minutesPracticed <= 300 &&
+             data.vocabLearnedCount is int && data.vocabLearnedCount >= 0 && data.vocabLearnedCount <= 500 &&
+             data.mistakesReviewed is int && data.mistakesReviewed >= 0 && data.mistakesReviewed <= 200 &&
+             data.confidenceScore is int && data.confidenceScore >= 1 && data.confidenceScore <= 10 &&
+             data.notes is string && data.notes.size() <= 1000;
+    }
+
+    function isValidReminderConfig(data) {
+      return data.category is string && data.category.size() >= 1 && data.category.size() <= 40 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 80 &&
+             data.hour is int && data.hour >= 0 && data.hour <= 23 &&
+             data.minute is int && data.minute >= 0 && data.minute <= 59 &&
+             data.enabled is bool;
+    }
+
+    // --- Collection Rules ---
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'displayName', 'targetAttemptYear', 'syllabusTargetDate',
+                         'optionalSubject', 'primaryLanguage', 'dailyStudyTargetMinutes',
+                         'englishTargetMinutes', 'themeMode', 'favouriteMember',
+                         'streakDays', 'totalStars', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'displayName', 'targetAttemptYear', 'syllabusTargetDate',
+                         'optionalSubject', 'primaryLanguage', 'dailyStudyTargetMinutes',
+                         'englishTargetMinutes', 'themeMode', 'favouriteMember',
+                         'streakDays', 'totalStars', 'lastStudyDate', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidTimestampsCreate(incoming()) &&
+                       isValidUserProfile(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().userId == existing().userId &&
+                       isValidTimestampsUpdate(incoming()) &&
+                       isValidUserProfile(incoming(), userId) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'displayName', 'targetAttemptYear', 'syllabusTargetDate',
+                         'optionalSubject', 'primaryLanguage', 'dailyStudyTargetMinutes',
+                         'englishTargetMinutes', 'themeMode', 'favouriteMember',
+                         'streakDays', 'totalStars', 'lastStudyDate', 'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      match /chapter_progress/{chapterId} {
+        allow get: if isOwner(userId) && isValidId(chapterId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(chapterId) &&
+                         incoming().keys().hasAll([
+                           'chapterId', 'bookId', 'completed', 'downloadedOffline',
+                           'notesRead', 'memoryDone', 'quizDone', 'bestScorePercent',
+                           'revisionStage', 'lastRevisedEpochMs', 'nextRevisionEpochMs',
+                           'weakConcepts', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'chapterId', 'bookId', 'completed', 'downloadedOffline',
+                           'notesRead', 'memoryDone', 'quizDone', 'bestScorePercent',
+                           'revisionStage', 'lastRevisedEpochMs', 'nextRevisionEpochMs',
+                           'weakConcepts', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidTimestampsCreate(incoming()) &&
+                         isValidChapterProgress(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(chapterId) &&
+                         incoming().chapterId == existing().chapterId &&
+                         incoming().bookId == existing().bookId &&
+                         isValidTimestampsUpdate(incoming()) &&
+                         isValidChapterProgress(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'completed', 'downloadedOffline', 'notesRead', 'memoryDone',
+                           'quizDone', 'bestScorePercent', 'revisionStage',
+                           'lastRevisedEpochMs', 'nextRevisionEpochMs', 'weakConcepts',
+                           'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(chapterId);
+      }
+
+      match /study_tasks/{taskId} {
+        allow get: if isOwner(userId) && isValidId(taskId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(taskId) &&
+                         incoming().keys().hasAll([
+                           'title', 'titleHi', 'category', 'durationMinutes',
+                           'actualMinutes', 'scheduledTime', 'status', 'taskDate',
+                           'custom', 'orderIndex', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'title', 'titleHi', 'category', 'durationMinutes',
+                           'actualMinutes', 'scheduledTime', 'status', 'taskDate',
+                           'custom', 'orderIndex', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidTimestampsCreate(incoming()) &&
+                         isValidStudyTask(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(taskId) &&
+                         isValidTimestampsUpdate(incoming()) &&
+                         isValidStudyTask(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'title', 'titleHi', 'category', 'durationMinutes',
+                           'actualMinutes', 'scheduledTime', 'status', 'taskDate',
+                           'orderIndex', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(taskId);
+      }
+
+      match /flashcards/{cardId} {
+        allow get: if isOwner(userId) && isValidId(cardId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(cardId) &&
+                         incoming().keys().hasAll([
+                           'deckMember', 'subject', 'chapterId', 'front', 'back',
+                           'explanation', 'difficulty', 'sourceRef', 'masteryStatus',
+                           'favourite', 'reviewCount', 'intervalDays', 'nextReviewEpochMs',
+                           'custom', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'deckMember', 'subject', 'chapterId', 'front', 'back',
+                           'explanation', 'difficulty', 'sourceRef', 'masteryStatus',
+                           'favourite', 'reviewCount', 'intervalDays', 'nextReviewEpochMs',
+                           'custom', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidTimestampsCreate(incoming()) &&
+                         isValidFlashcardItem(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(cardId) &&
+                         isValidTimestampsUpdate(incoming()) &&
+                         isValidFlashcardItem(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'front', 'back', 'explanation', 'difficulty', 'masteryStatus',
+                           'favourite', 'reviewCount', 'intervalDays', 'nextReviewEpochMs',
+                           'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(cardId);
+      }
+
+      match /quote_history/{entryId} {
+        allow get: if isOwner(userId) && isValidId(entryId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(entryId) &&
+                         incoming().keys().hasAll([
+                           'quoteId', 'member', 'text', 'labelType', 'sourceNote',
+                           'contextTag', 'displayedDate', 'slot', 'favourite',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'quoteId', 'member', 'text', 'labelType', 'sourceNote',
+                           'contextTag', 'displayedDate', 'slot', 'favourite',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidTimestampsCreate(incoming()) &&
+                         isValidQuoteHistoryEntry(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(entryId) &&
+                         incoming().quoteId == existing().quoteId &&
+                         incoming().member == existing().member &&
+                         isValidTimestampsUpdate(incoming()) &&
+                         isValidQuoteHistoryEntry(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'favourite', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(entryId);
+      }
+
+      match /test_attempts/{attemptId} {
+        allow get: if isOwner(userId) && isValidId(attemptId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(attemptId) &&
+                         incoming().keys().hasAll([
+                           'testTitle', 'testType', 'chapterId', 'totalQuestions',
+                           'correctCount', 'wrongCount', 'skippedCount', 'netScore',
+                           'maxScore', 'accuracyPercent', 'timeTakenSeconds',
+                           'weakTopics', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'testTitle', 'testType', 'chapterId', 'totalQuestions',
+                           'correctCount', 'wrongCount', 'skippedCount', 'netScore',
+                           'maxScore', 'accuracyPercent', 'timeTakenSeconds',
+                           'weakTopics', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidTimestampsCreate(incoming()) &&
+                         isValidTestAttempt(incoming());
+
+        allow update: if false;
+        allow delete: if isOwner(userId) && isValidId(attemptId);
+      }
+
+      match /english_logs/{logId} {
+        allow get: if isOwner(userId) && isValidId(logId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(logId) &&
+                         incoming().keys().hasAll([
+                           'dateStr', 'minutesPracticed', 'vocabLearnedCount',
+                           'mistakesReviewed', 'confidenceScore', 'notes',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'dateStr', 'minutesPracticed', 'vocabLearnedCount',
+                           'mistakesReviewed', 'confidenceScore', 'notes',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidTimestampsCreate(incoming()) &&
+                         isValidEnglishLog(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(logId) &&
+                         isValidTimestampsUpdate(incoming()) &&
+                         isValidEnglishLog(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'minutesPracticed', 'vocabLearnedCount', 'mistakesReviewed',
+                           'confidenceScore', 'notes', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(logId);
+      }
+
+      match /reminder_configs/{categoryId} {
+        allow get: if isOwner(userId) && isValidId(categoryId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(categoryId) &&
+                         incoming().keys().hasAll([
+                           'category', 'title', 'hour', 'minute', 'enabled',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'category', 'title', 'hour', 'minute', 'enabled',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidTimestampsCreate(incoming()) &&
+                         isValidReminderConfig(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(categoryId) &&
+                         incoming().category == existing().category &&
+                         isValidTimestampsUpdate(incoming()) &&
+                         isValidReminderConfig(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'title', 'hour', 'minute', 'enabled', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(categoryId);
+      }
+    }
+  }
+}
